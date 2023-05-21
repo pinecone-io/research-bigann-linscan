@@ -49,14 +49,13 @@ impl Index {
     /// This function automatically assigns the document id in the order documents are inserted,
     /// beginning from 1.
     pub fn insert(&mut self, document: &HashMap<u32, f32>) {
-        self.num_docs += 1;
-
         for (&coordinate, &value) in document {
             self.inverted_index.entry(coordinate).or_default().push(Posting{
                 docid: self.num_docs,
                 value,
             });
         }
+        self.num_docs += 1;
     }
 
     fn compute_dot_product(&mut self, coordinate: u32, query_value: f32, scores: &mut [f32]) {
@@ -82,8 +81,8 @@ impl Index {
                 top_k: usize,
                 inner_product_budget: Option<Duration>) -> Vec<SearchResult> {
         // Create an array with the same size as the number of documents in the index.
-        let mut scores = Vec::with_capacity((self.num_docs + 1) as usize);
-        scores.resize((self.num_docs + 1) as usize, 0_f32);
+        let mut scores = Vec::with_capacity(self.num_docs as usize);
+        scores.resize(self.num_docs as usize, 0_f32);
 
         match inner_product_budget {
             None => {
@@ -128,5 +127,16 @@ impl Index {
         }
 
         heap.into_sorted_vec().iter().map(|e| e.0).collect()
+    }
+
+    pub fn print_stats(&self) {
+        println!("Linscan statistics:");
+        println!("# documents: {}", self.num_docs);
+        println!("# elements in inverted index: {}", self.inverted_index.keys().len());
+        let mut total_elements = 0;
+        for t in self.inverted_index.iter() {
+            total_elements += t.1.len();
+        }
+        println!("Avg. nnz per vector: {}", total_elements as f32 / self.num_docs as f32);
     }
 }
