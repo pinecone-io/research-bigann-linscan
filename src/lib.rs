@@ -3,13 +3,6 @@ use std::time::Duration;
 use pyo3::prelude::*;
 mod index;
 
-
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
-
 #[pyclass]
 struct LinscanIndex {
     index: index::Index
@@ -19,7 +12,7 @@ struct LinscanIndex {
 impl LinscanIndex {
     #[new]
     pub fn new() -> LinscanIndex {
-        println!("Initializing a new LinscanIndex, now with stats!");
+        println!("Initializing a new LinscanIndex.");
         LinscanIndex {
             index: index::Index::new(),
         }
@@ -48,7 +41,6 @@ impl LinscanIndex {
 /// import the module.
 #[pymodule]
 fn linscan(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_class::<LinscanIndex>()?;
     Ok(())
 }
