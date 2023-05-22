@@ -16,3 +16,4 @@ Cargo.lock
 .idea
 
 .venv
+__pycache__

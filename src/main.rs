@@ -10,7 +10,7 @@ fn main() {
     ind.insert(&v1);
     ind.insert(&v2);
 
-    ind.print_stats();
+    println!("Index built: {}", ind);
 
     let r = ind.retrieve(&q, 4, None);
     println!("{:?}", &r);

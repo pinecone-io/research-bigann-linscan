@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use pyo3::prelude::*;
+
 mod index;
 
 #[pyclass]
@@ -26,12 +27,17 @@ impl LinscanIndex {
         let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms * 1000_f32));
 
         let r = self.index.retrieve(&query, top_k, duration);
-        // dbg!(r);
         r.into_iter().map(|f| f.docid).collect()
     }
 
-    pub fn print_stats(&self) {
-        self.index.print_stats();
+    // this defines the out of the >str(index) in python
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.index.to_string())
+    }
+
+    // this defines the out of the >repr(index) in python, as well as simply >index
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(self.index.to_string())
     }
 }
 

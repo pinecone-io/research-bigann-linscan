@@ -2,6 +2,7 @@ use std::cmp::{Ordering, Reverse};
 use std::cmp::Ordering::Equal;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::{Duration, Instant};
+use std::fmt;
 
 /// A structure that reports the outcome of the inner product computation for a single document.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -129,14 +130,22 @@ impl Index {
         heap.into_sorted_vec().iter().map(|e| e.0).collect()
     }
 
-    pub fn print_stats(&self) {
-        println!("Linscan statistics:");
-        println!("# documents: {}", self.num_docs);
-        println!("# elements in inverted index: {}", self.inverted_index.keys().len());
+}
+
+// To use the `{}` marker, the trait `fmt::Display` must be implemented
+// manually for the type.
+impl fmt::Display for Index {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
         let mut total_elements = 0;
         for t in self.inverted_index.iter() {
             total_elements += t.1.len();
         }
-        println!("Avg. nnz per vector: {}", total_elements as f32 / self.num_docs as f32);
+
+        write!(f, "Linscan Index [{} documents, {} unique tokens, avg. nnz: {}]", self.num_docs, self.inverted_index.keys().len(), total_elements as f32 / self.num_docs as f32 )
     }
 }
