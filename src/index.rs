@@ -137,15 +137,7 @@ impl Index {
 impl fmt::Display for Index {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        let mut total_elements = 0;
-        for t in self.inverted_index.iter() {
-            total_elements += t.1.len();
-        }
-
+        let total_elements: usize = self.inverted_index.iter().map(|(_, v)| v.len()).sum();
         write!(f, "Linscan Index [{} documents, {} unique tokens, avg. nnz: {}]", self.num_docs, self.inverted_index.keys().len(), total_elements as f32 / self.num_docs as f32 )
     }
 }
