@@ -3,6 +3,8 @@ use std::cmp::Ordering::Equal;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::{Duration, Instant};
 use std::fmt;
+use std::cmp::min;
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
 /// A structure that reports the outcome of the inner product computation for a single document.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -26,6 +28,7 @@ impl Ord for SearchResult {
 }
 
 /// A structure that represents a single `posting` in the inverted list.
+#[derive(Clone)]
 pub struct Posting {
     pub docid: u32,
     pub value: f32,
@@ -35,13 +38,15 @@ pub struct Posting {
 pub struct Index {
     inverted_index: HashMap<u32, Vec<Posting>>,
     num_docs: u32,
+    parallel: bool,
 }
 
 impl Index {
-    pub fn new() -> Index {
+    pub fn new(parallel: bool) -> Index {
         Index {
             inverted_index: HashMap::new(),
             num_docs: 0,
+            parallel,
         }
     }
 
@@ -59,14 +64,61 @@ impl Index {
         self.num_docs += 1;
     }
 
+    pub fn finalize(&mut self) {
+        // sort the posting lists to allow accelerated parallel search
+        self.inverted_index.iter_mut().for_each(|(_, postings)| {
+            postings.sort_by_key(|posting| posting.docid);
+        });
+
+    }
+
     fn compute_dot_product(&mut self, coordinate: u32, query_value: f32, scores: &mut [f32]) {
-        match self.inverted_index.get(&coordinate) {
-            None => {}
-            Some(postings) => {
-                for posting in postings {
-                    scores[posting.docid as usize] += query_value * posting.value;
+        if !self.parallel {
+            match self.inverted_index.get(&coordinate){
+                None => {}
+                Some(postings) => {
+                    for posting in postings {
+                        scores[posting.docid as usize] += query_value * posting.value;
+                    }
                 }
             }
+        } else { // parallel = true
+            let partitions = rayon::current_num_threads();
+            let partition_size = (scores.len() as f32 / partitions as f32).ceil() as usize;
+
+            let mut chunks = vec![];
+            let mut begin = 0_usize;
+            let length = scores.len();
+
+            // partition the output space between threads
+            for chunk in scores.chunks_mut(partition_size) {
+                let end = min(begin + partition_size, length);
+                chunks.push((chunk, begin as u32, end as u32));
+                begin = end;
+            }
+
+            chunks.par_iter_mut().for_each(|(out, a, b)| {
+                match self.inverted_index.get(&coordinate) {
+                    None => {}
+                    Some(postings) => {
+
+                        let start_index = postings
+                            .binary_search_by_key(a, |posting| posting.docid)
+                            .unwrap_or_else(|x| x);
+
+                        let end_index = postings
+                            .binary_search_by_key(b, |posting| posting.docid)
+                            .unwrap_or_else(|x| x);
+
+                        for posting in &postings[start_index..end_index] {
+                        // for posting in postings.iter().filter(|posting| posting.docid >= *a && posting.docid < *b) {
+                                out[(posting.docid - *a) as usize] += query_value * posting.value;
+                        }
+                    }
+                }
+            });
+
+
         }
     }
 
@@ -138,6 +190,6 @@ impl fmt::Display for Index {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let total_elements: usize = self.inverted_index.iter().map(|(_, v)| v.len()).sum();
-        write!(f, "Linscan Index [{} documents, {} unique tokens, avg. nnz: {}]", self.num_docs, self.inverted_index.keys().len(), total_elements as f32 / self.num_docs as f32 )
+        write!(f, "Linscan Index [{} documents, {} unique tokens, avg. nnz: {}, parallel: {}]", self.num_docs, self.inverted_index.keys().len(), total_elements as f32 / self.num_docs as f32, self.parallel)
     }
 }

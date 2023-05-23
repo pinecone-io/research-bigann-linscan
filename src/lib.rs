@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use pyo3::prelude::*;
-
 mod index;
 
 #[pyclass]
@@ -12,10 +11,10 @@ struct LinscanIndex {
 #[pymethods]
 impl LinscanIndex {
     #[new]
-    pub fn new() -> LinscanIndex {
+    pub fn new(parallel: Option<bool>) -> LinscanIndex {
         println!("Initializing a new LinscanIndex.");
         LinscanIndex {
-            index: index::Index::new(),
+            index: index::Index::new(parallel.unwrap_or(false)),
         }
     }
 
@@ -29,6 +28,24 @@ impl LinscanIndex {
         let r = self.index.retrieve(&query, top_k, duration);
         r.into_iter().map(|f| f.docid).collect()
     }
+
+    // sorts the postings lists by docid. Required before calling retrieve when parallel=true.
+    pub fn finalize(&mut self) {
+        self.index.finalize();
+    }
+
+    // // search for the top_k, given a collection of queries
+    // pub fn retrieve_parallel(&mut self, queries: Vec<HashMap<u32, f32>>, top_k: usize, inner_product_budget_ms: Option<f32>, num_threads: usize) -> Vec<Vec<u32>> {
+    //     let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
+    //
+    //     result
+    //     queries.par_iter().map(|q| {
+    //         let r = self.index.retrieve(&q, top_k, duration);
+    //         r.into_iter().map(|f| f.docid).collect()
+    //     }).collect()
+    //
+    // }
+
 
     // this defines the out of the >str(index) in python
     fn __str__(&self) -> PyResult<String> {
