@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 use pyo3::prelude::*;
+use rayon::prelude::*;
 
 mod index;
 
@@ -11,9 +12,18 @@ struct LinscanIndex {
 
 #[pymethods]
 impl LinscanIndex {
+    // creates a new empty index.
+    // optional parameter: number of threads to initialize the global pool with.
+    // If not supplied, then the number of threads is chosen automatically (recommended).
     #[new]
-    pub fn new() -> LinscanIndex {
+    pub fn new(num_threads: Option<usize>) -> LinscanIndex {
         println!("Initializing a new LinscanIndex.");
+        num_threads.map(|nt| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(nt)
+                .build_global()
+                .unwrap();
+        });
         LinscanIndex {
             index: index::Index::new(),
         }
@@ -28,6 +38,17 @@ impl LinscanIndex {
 
         let r = self.index.retrieve(&query, top_k, duration);
         r.into_iter().map(|f| f.docid).collect()
+    }
+
+    // search for the top_k, given a collection of queries. Queries are issued in parallel using rayon's par_iter.
+    pub fn retrieve_parallel(&mut self, queries: Vec<HashMap<u32, f32>>, top_k: usize, inner_product_budget_ms: Option<f32>) -> Vec<Vec<u32>> {
+        let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
+
+        queries.par_iter().map(|q| {
+            let r = self.index.retrieve(&q, top_k, duration);
+            r.into_iter().map(|f| f.docid).collect()
+        }).collect()
+
     }
 
     // this defines the out of the >str(index) in python
