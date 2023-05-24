@@ -24,7 +24,7 @@ impl LinscanIndex {
     }
 
     pub fn retrieve(&mut self, query: HashMap<u32, f32>, top_k: usize, inner_product_budget_ms: Option<f32>) -> Vec<u32> {
-        let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms * 1000_f32));
+        let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
 
         let r = self.index.retrieve(&query, top_k, duration);
         r.into_iter().map(|f| f.docid).collect()
