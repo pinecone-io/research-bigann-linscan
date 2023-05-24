@@ -44,10 +44,10 @@ impl LinscanIndex {
     pub fn retrieve_parallel(&mut self, queries: Vec<HashMap<u32, f32>>, top_k: usize, inner_product_budget_ms: Option<f32>) -> Vec<Vec<u32>> {
         let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
 
-        queries.par_iter().map(|q| {
-            let r = self.index.retrieve(&q, top_k, duration);
-            r.into_iter().map(|f| f.docid).collect()
-        }).collect()
+        queries.par_iter().map(|q|
+            self.index.retrieve(&q, top_k, duration)
+                .into_iter().map(|f| f.docid).collect()
+        ).collect()
 
     }
 

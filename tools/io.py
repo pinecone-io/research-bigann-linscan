@@ -4,7 +4,7 @@ from scipy.sparse import csr_matrix
 import numpy as np
 
 def read_sparse_matrix_fields(fname):
-    """ read the fields of a CSR matrix without instanciating it """
+    """ read the fields of a CSR matrix without instantiating it """
     with open(fname, "rb") as f:
         sizes = np.fromfile(f, dtype='int64', count=3)
         nrow, ncol, nnz = sizes
@@ -16,7 +16,7 @@ def read_sparse_matrix_fields(fname):
         return data, indices, indptr, ncol
 
 def mmap_sparse_matrix_fields(fname):
-    """ mmap the fields of a CSR matrix without instanciating it """
+    """ mmap the fields of a CSR matrix without instantiating it """
     with open(fname, "rb") as f:
         sizes = np.fromfile(f, dtype='int64', count=3)
         nrow, ncol, nnz = sizes
