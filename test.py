@@ -1,20 +1,44 @@
+# a basic python file to test the python api
+
+# the files for this test can be downloaded from the following gcs location:
+# https://storage.googleapis.com/ann-challenge-sparse-vectors/csr/base_small.csr.gz
+# https://storage.googleapis.com/ann-challenge-sparse-vectors/csr/queries.dev.csr.gz
+# (use, e.g. wget and gunzip)
+
+from tools.io import read_sparse_matrix
 from linscan import LinscanIndex
+from tqdm import tqdm
+import time
 
-ind = LinscanIndex()
+filename = 'data/base_small.csr'
+d = read_sparse_matrix(filename)
 
-v1 = {0: 0.4, 4: 0.6, 1234: -0.666}
-v2 = {1: 0.4, 4: 10, 123456: -0.666}
+index = LinscanIndex()
+print('Inserting vectors into index:')
+for i in tqdm(range(d.shape[0])):
+    d1 = d.getrow(i)
+    index.insert(dict(zip(d1.indices, d1.data)))
+print(index)
 
-ind.insert(v1)
-ind.insert(v2)
+print("reading queries file..")
+queries_file = 'data/queries.dev.csr'
+queries = read_sparse_matrix(queries_file)
+print(queries.shape)
+nq = queries.shape[0]
+print("running search queries:")
 
-print("Index built:", ind)
+q_vec = []
+for i in range(nq):
+    qc = queries.getrow(i)
+    q = dict(zip(qc.indices, qc.data))
+    q_vec.append(q)
 
-q = {2: 0.4, 4: 0.1, 5678: 1.33}
+start = time.time()
 
-print("some search results:")
+res_vec = index.retrieve_parallel(q_vec, 10, 10)
 
-r = ind.retrieve(q, 1)
+end = time.time()
+elapsed = end - start
 
-print(r)
-assert (r == [1])
+print(f'Parallel queries issued. Elapsed time: {elapsed}; {round(nq/elapsed, 2)} QPS')
+

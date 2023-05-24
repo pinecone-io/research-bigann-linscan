@@ -59,7 +59,7 @@ impl Index {
         self.num_docs += 1;
     }
 
-    fn compute_dot_product(&mut self, coordinate: u32, query_value: f32, scores: &mut [f32]) {
+    fn compute_dot_product(&self, coordinate: u32, query_value: f32, scores: &mut [f32]) {
         match self.inverted_index.get(&coordinate) {
             None => {}
             Some(postings) => {
@@ -78,7 +78,7 @@ impl Index {
     /// When `inner_product_budget` is provided, this function stops computing document scores when
     /// the budget is exhausted. It then moves on to the sort operation. Note that, the time spent
     /// on the sort operation is separate from the given time budget.
-    pub fn retrieve(&mut self, query: &HashMap<u32, f32>,
+    pub fn retrieve(&self, query: &HashMap<u32, f32>,
                 top_k: usize,
                 inner_product_budget: Option<Duration>) -> Vec<SearchResult> {
         // Create an array with the same size as the number of documents in the index.

@@ -17,6 +17,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.18.3", features = ["extension-module"] }
+rayon = "1.7.0"
 
 [[bin]]
 name = "main"
