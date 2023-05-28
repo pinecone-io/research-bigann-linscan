@@ -40,7 +40,6 @@ impl LinscanIndex {
         }
     }
 
-
     // insert a new document into the index.
     pub fn insert(&mut self, newdoc: HashMap<u32, f32>) {
         self.index.insert(&newdoc);
@@ -62,6 +61,28 @@ impl LinscanIndex {
         ).collect()
 
     }
+
+    // load an index from disk.
+    #[staticmethod]
+    pub fn load_index(path: String, num_threads: Option<usize>) -> PyResult<LinscanIndex> {
+        println!("Loading an index from {}.", path);
+        num_threads.map(|nt| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(nt)
+                .build_global()
+                .unwrap();
+        });
+
+        let index = index::Index::load(&path);
+        Ok(LinscanIndex { index })
+    }
+
+
+    // save the index to disk.
+    pub fn save(&self, path: String) {
+        self.index.save(&path);
+    }
+
 
     // this defines the out of the >str(index) in python
     fn __str__(&self) -> PyResult<String> {
