@@ -134,15 +134,13 @@ impl Index {
     }
 
     /// save the index to a file
-    pub fn save(&self, path: &str) {
-        let mut file = std::fs::File::create(path).unwrap();
-        bincode::serialize_into(&mut file, &self).unwrap();
+    pub fn save(&self, file: &mut std::fs::File) {
+        bincode::serialize_into(file, &self).unwrap();
     }
 
     /// load the index from a file
-    pub fn load(path: &str) -> Index {
-        let file = std::fs::File::open(path).unwrap();
-        bincode::deserialize_from(&file).unwrap()
+    pub fn load(file: &std::fs::File) -> Index {
+        bincode::deserialize_from(file).unwrap()
     }
 }
 
@@ -174,9 +172,13 @@ mod tests {
 
         let filename = "tmp_index.bin";
 
-        ind.save(filename);
+        let mut file = std::fs::File::create(filename).unwrap();
 
-        let ind_rec: Index = Index::load(filename);
+        ind.save(&mut file);
+
+        let file = std::fs::File::open(filename).unwrap();
+
+        let ind_rec: Index = Index::load(&file);
         assert_eq!(ind.num_docs, ind_rec.num_docs);
         dbg!(ind);
         dbg!(ind_rec);

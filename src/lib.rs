@@ -71,14 +71,17 @@ impl LinscanIndex {
                 .unwrap();
         });
 
-        let index = index::Index::load(&path);
+        let file = std::fs::File::open(path).unwrap();
+
+        let index = index::Index::load(&file);
         Ok(LinscanIndex { index })
     }
 
 
     // save the index to disk.
     pub fn save(&self, path: String) {
-        self.index.save(&path);
+        let mut file = std::fs::File::create(path).unwrap();
+        self.index.save(&mut file);
     }
 
 
