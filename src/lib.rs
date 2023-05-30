@@ -12,13 +12,11 @@ struct LinscanIndex {
 
 // convert milliseconds to a duration. If ms is infinity, then return None.
 fn ms_to_duration(ms_opt: Option<f32>) -> Option<Duration> {
-
-    // if ms is infinity, then return None
-    if ms_opt == Some(f32::INFINITY) {
-        return None;
+    match ms_opt {
+        None => None,
+        Some(ms) if ms.is_infinite() => None, // if ms is infinity, then return None (no limit)
+        Some(ms) => Some(Duration::from_secs_f32(ms / 1000_f32))
     }
-
-    ms_opt.map(|ms| Duration::from_secs_f32(ms / 1000_f32))
 }
 
 #[pymethods]
