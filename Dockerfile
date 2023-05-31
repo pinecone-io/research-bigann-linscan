@@ -34,7 +34,8 @@ RUN pip3 install maturin
 # build a whl file
 RUN maturin build -r
 
-RUN pip3 install target/wheels/linscan-0.1.0-cp310-cp310-manylinux_2_27_x86_64.whl
+# pip install the resulting whl file (regardless of the architecture)
+RUN for whl in target/wheels/*.whl; do pip3 install $whl; done
 
 RUN pip3 install -r requirements.txt
 
