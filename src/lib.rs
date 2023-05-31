@@ -10,6 +10,15 @@ struct LinscanIndex {
     index: index::Index
 }
 
+// convert milliseconds to a duration. If ms is infinity, then return None.
+fn ms_to_duration(ms_opt: Option<f32>) -> Option<Duration> {
+    match ms_opt {
+        None => None,
+        Some(ms) if ms.is_infinite() => None, // if ms is infinity, then return None (no limit)
+        Some(ms) => Some(Duration::from_secs_f32(ms / 1000_f32))
+    }
+}
+
 #[pymethods]
 impl LinscanIndex {
     // creates a new empty index.
@@ -29,27 +38,52 @@ impl LinscanIndex {
         }
     }
 
+    // insert a new document into the index.
     pub fn insert(&mut self, newdoc: HashMap<u32, f32>) {
         self.index.insert(&newdoc);
     }
 
+    // search for the top_k, given a single query.
     pub fn retrieve(&mut self, query: HashMap<u32, f32>, top_k: usize, inner_product_budget_ms: Option<f32>) -> Vec<u32> {
-        let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
 
-        let r = self.index.retrieve(&query, top_k, duration);
+        let r = self.index.retrieve(&query, top_k, ms_to_duration(inner_product_budget_ms));
         r.into_iter().map(|f| f.docid).collect()
     }
 
     // search for the top_k, given a collection of queries. Queries are issued in parallel using rayon's par_iter.
     pub fn retrieve_parallel(&mut self, queries: Vec<HashMap<u32, f32>>, top_k: usize, inner_product_budget_ms: Option<f32>) -> Vec<Vec<u32>> {
-        let duration = inner_product_budget_ms.map(|budget_ms| Duration::from_secs_f32(budget_ms / 1000_f32));
 
         queries.par_iter().map(|q|
-            self.index.retrieve(&q, top_k, duration)
+            self.index.retrieve(&q, top_k, ms_to_duration(inner_product_budget_ms))
                 .into_iter().map(|f| f.docid).collect()
         ).collect()
 
     }
+
+    // load an index from disk.
+    #[staticmethod]
+    pub fn load_index(path: String, num_threads: Option<usize>) -> PyResult<LinscanIndex> {
+        println!("Loading an index from {}.", path);
+        num_threads.map(|nt| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(nt)
+                .build_global()
+                .unwrap();
+        });
+
+        let file = std::fs::File::open(path).unwrap();
+
+        let index = index::Index::load(&file);
+        Ok(LinscanIndex { index })
+    }
+
+
+    // save the index to disk.
+    pub fn save(&self, path: String) {
+        let mut file = std::fs::File::create(path).unwrap();
+        self.index.save(&mut file);
+    }
+
 
     // this defines the out of the >str(index) in python
     fn __str__(&self) -> PyResult<String> {

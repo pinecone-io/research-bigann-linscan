@@ -3,6 +3,7 @@ use std::cmp::Ordering::Equal;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::{Duration, Instant};
 use std::fmt;
+use serde::{Serialize, Deserialize};
 
 /// A structure that reports the outcome of the inner product computation for a single document.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -26,12 +27,14 @@ impl Ord for SearchResult {
 }
 
 /// A structure that represents a single `posting` in the inverted list.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Posting {
     pub docid: u32,
     pub value: f32,
 }
 
 /// Vanilla LinScan operates on an uncompressed inverted index.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Index {
     inverted_index: HashMap<u32, Vec<Posting>>,
     num_docs: u32,
@@ -130,6 +133,15 @@ impl Index {
         heap.into_sorted_vec().iter().map(|e| e.0).collect()
     }
 
+    /// save the index to a file
+    pub fn save(&self, file: &mut std::fs::File) {
+        bincode::serialize_into(file, &self).unwrap();
+    }
+
+    /// load the index from a file
+    pub fn load(file: &std::fs::File) -> Index {
+        bincode::deserialize_from(file).unwrap()
+    }
 }
 
 // To use the `{}` marker, the trait `fmt::Display` must be implemented
@@ -139,5 +151,36 @@ impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let total_elements: usize = self.inverted_index.iter().map(|(_, v)| v.len()).sum();
         write!(f, "Linscan Index [{} documents, {} unique tokens, avg. nnz: {}]", self.num_docs, self.inverted_index.keys().len(), total_elements as f32 / self.num_docs as f32 )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use crate::index::Index;
+
+    #[test]
+    fn test_serde() {
+        let mut ind = Index::new();
+
+        let v1 = HashMap::from([(1_u32, 0.4_f32), (5, 0.6)]);
+        let v2 = HashMap::from([(2_u32, 0.4_f32), (5, 0.9)]);
+
+        ind.insert(&v1);
+        ind.insert(&v2);
+
+
+        let filename = "tmp_index.bin";
+
+        let mut file = std::fs::File::create(filename).unwrap();
+
+        ind.save(&mut file);
+
+        let file = std::fs::File::open(filename).unwrap();
+
+        let ind_rec: Index = Index::load(&file);
+        assert_eq!(ind.num_docs, ind_rec.num_docs);
+        dbg!(ind);
+        dbg!(ind_rec);
     }
 }
