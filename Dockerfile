@@ -17,10 +17,8 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 # Add .cargo/bin to PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Check cargo is visible
-
 # git clone a single branch: https://stackoverflow.com/a/4568323/1090561
-RUN git clone --single-branch --branch amir_dockerfile https://github.com/pinecone-io/research-bigann-linscan
+RUN git clone --single-branch --branch main https://github.com/pinecone-io/research-bigann-linscan
 WORKDIR /research-bigann-linscan
 
 # fix python3 link (required for pyo3)
