@@ -6,7 +6,7 @@
 # (use, e.g. wget and gunzip)
 
 from tools.io import read_sparse_matrix
-from linscan import LinscanIndex
+from pylinscan import LinscanIndex
 from tqdm import tqdm
 import time
 
