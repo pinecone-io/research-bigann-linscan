@@ -101,7 +101,7 @@ impl LinscanIndex {
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-fn linscan(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn pylinscan(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<LinscanIndex>()?;
     Ok(())
 }
