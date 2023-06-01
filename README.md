@@ -1,6 +1,8 @@
-# research-bigann-linscan
+# Linscan: efficient sparse maximal inner product search
 
-Build instructions using docker:
+This repository contains an efficient implementation of Linscan (see [paper](https://arxiv.org/abs/2301.10622)). The algorithm is used as a baseline in the 2023 ANN benchmarks.
+
+# Build instructions using docker:
 
 - Build the docker image: `docker build -t linscan .`
 - Run the docker:  `docker run -it linscan`
