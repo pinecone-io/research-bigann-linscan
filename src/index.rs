@@ -3,7 +3,7 @@ use std::cmp::Ordering::Equal;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::{Duration, Instant};
 use std::fmt;
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 use serde::{Serialize, Deserialize};
 
 /// A structure that reports the outcome of the inner product computation for a single document.
@@ -147,7 +147,8 @@ impl Index {
 
     /// load the index from a file
     pub fn load(file: &std::fs::File) -> Index {
-        bincode::deserialize_from(file).unwrap()
+        let reader = BufReader::new(file);
+        bincode::deserialize_from(reader).unwrap()
     }
 }
 
