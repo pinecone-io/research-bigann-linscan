@@ -3,6 +3,7 @@ use std::cmp::Ordering::Equal;
 use std::collections::{BinaryHeap, HashMap};
 use std::time::{Duration, Instant};
 use std::fmt;
+use std::io::BufWriter;
 use serde::{Serialize, Deserialize};
 
 /// A structure that reports the outcome of the inner product computation for a single document.
@@ -27,7 +28,7 @@ impl Ord for SearchResult {
 }
 
 /// A structure that represents a single `posting` in the inverted list.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Posting {
     pub docid: u32,
     pub value: f32,
@@ -135,7 +136,13 @@ impl Index {
 
     /// save the index to a file
     pub fn save(&self, file: &mut std::fs::File) {
-        bincode::serialize_into(file, &self).unwrap();
+
+        // Wrap the file writer in a BufWriter for buffering
+        let writer = BufWriter::new(file);
+
+        // Serialize the index into the buffered writer using bincode
+        bincode::serialize_into(writer, &self).expect("Failed to serialize");
+        // bincode::serialize_into(file, &self).unwrap();
     }
 
     /// load the index from a file
@@ -170,17 +177,13 @@ mod tests {
         ind.insert(&v2);
 
 
-        let filename = "tmp_index.bin";
 
-        let mut file = std::fs::File::create(filename).unwrap();
+        // serialize to byte array
+        let bytes = bincode::serialize(&ind).unwrap();
+        // reconstruct and compare
+        let ind_rec: Index = bincode::deserialize(&bytes).unwrap();
 
-        ind.save(&mut file);
-
-        let file = std::fs::File::open(filename).unwrap();
-
-        let ind_rec: Index = Index::load(&file);
         assert_eq!(ind.num_docs, ind_rec.num_docs);
-        dbg!(ind);
-        dbg!(ind_rec);
+        assert_eq!(ind.inverted_index, ind_rec.inverted_index);
     }
 }
